@@ -36,7 +36,7 @@ except Exception as e:  # pragma: no cover
     ) from e
 
 try:
-    from ..models import AnigravityAction, AnigravityObservation
+    from .models import AnigravityAction, AnigravityObservation
     from .anigravity_env_environment import AnigravityEnvironment
 except ModuleNotFoundError:
     from models import AnigravityAction, AnigravityObservation
