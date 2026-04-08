@@ -3,7 +3,7 @@ from openenv.core.env_server.types import State
 
 # --- The Fix is right here! ---
 try:
-    from models import AnigravityAction, AnigravityObservation
+    from .models import AnigravityAction, AnigravityObservation
 except ImportError:
     from ..models import AnigravityAction, AnigravityObservation
 # ------------------------------
