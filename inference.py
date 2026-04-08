@@ -1,10 +1,14 @@
 import asyncio
 import os
 import re
+import sys
 from openai import OpenAI
 
+# --- PATH FIX: This ensures it finds models.py and environment files ---
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from models import AnigravityAction
-from server.anigravity_env_environment import AnigravityEnvironment
+from anigravity_env_environment import AnigravityEnvironment
 
 API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "dummy_key")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
@@ -30,7 +34,10 @@ def log_end(success, steps, score, rewards):
     print(f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
 async def main():
+    # Use standard client for the LLM
     client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+    
+    # NOTE: We removed 'await' because we made the environment methods synchronous!
     env = AnigravityEnvironment()
     
     rewards = []
@@ -39,7 +46,8 @@ async def main():
     log_start(task=TASK_NAME, env="anigravity-drone-stabilizer", model=MODEL_NAME)
     
     try:
-        state = await env.reset()
+        # 1. Reset (Removed await)
+        state = env.reset()
         obs_dict = state.observation
         
         for step in range(1, MAX_STEPS + 1):
@@ -65,11 +73,13 @@ async def main():
                 if match:
                     thrust = float(match.group())
             except Exception:
-                # Smart Fallback if API fails
                 thrust = 0.8 if altitude < target else 0.2
                 
             action = AnigravityAction(thrust_level=thrust)
-            state = await env.step(action)
+            
+            # 2. Step (Removed await)
+            state = env.step(action)
+            
             obs_dict = state.observation
             reward = state.reward
             done = state.done
@@ -89,7 +99,7 @@ async def main():
         log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
         
     except Exception as e:
-        print(f"[DEBUG] Error: {e}")
+        print(f"[DEBUG] Error during evaluation: {e}")
 
 if __name__ == '__main__':
     asyncio.run(main())
