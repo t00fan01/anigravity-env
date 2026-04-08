@@ -1,12 +1,6 @@
 from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
-
-# --- The Fix is right here! ---
-try:
-    from .models import AnigravityAction, AnigravityObservation
-except ImportError:
-    from ..models import AnigravityAction, AnigravityObservation
-# ------------------------------
+from .models import AnigravityAction, AnigravityObservation
 
 class AnigravityEnvironment(Environment):
     def __init__(self):
@@ -34,11 +28,11 @@ class AnigravityEnvironment(Environment):
             self.altitude = 0.0
             self.target_altitude = 20.0
 
-    async def reset(self) -> State:
+    def reset(self) -> State:
         self._setup_task()
-        return await self.state()
+        return self.state()
 
-    async def step(self, action: AnigravityAction) -> State:
+    def step(self, action: AnigravityAction) -> State:
         self.step_count += 1
         thrust = max(0.0, min(1.0, action.thrust_level))
         acceleration = (thrust * self.max_thrust) - self.gravity
@@ -70,10 +64,15 @@ class AnigravityEnvironment(Environment):
             info={"distance": dist}
         )
 
-    async def state(self) -> State:
+    def state(self) -> State:
         obs = AnigravityObservation(
             altitude=round(self.altitude, 2),
             velocity=round(self.velocity, 2),
             target_altitude=self.target_altitude
         )
-        return State(observation=obs.model_dump(), reward=0.0, done=False, info={})
+        return State(
+            observation=obs.model_dump(), 
+            reward=0.0, 
+            done=False, 
+            info={}
+        )
