@@ -1,0 +1,10 @@
+version: "1.0"
+metadata:
+  name: "anigravity-drone-stabilizer"
+  description: "A real-world industrial environment for training AI to control drone thrusters, counteracting gravity to maintain stable altitude."
+  authors:
+    - "Your Name"
+entrypoint: "anigravity_env:AnigravityEnv"
+tags:
+  - "physics"
+  - "control-systems"
