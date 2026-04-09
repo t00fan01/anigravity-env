@@ -1,6 +1,6 @@
 from openenv.core.env_server.interfaces import Environment
 from openenv.core.env_server.types import State
-from .models import AnigravityAction, AnigravityObservation
+from models import AnigravityAction, AnigravityObservation
 
 class AnigravityEnvironment(Environment):
     def __init__(self):
