@@ -15,7 +15,7 @@ class AnigravityEnvironment(Environment):
         self.max_steps = 30
         self.step_count = 0
         self.velocity = 0.0
-        self.fuel = 100.0  # The drone now has a battery!
+        self.fuel = 100.0
 
         if self.task_name == "easy_hover":
             self.gravity = 9.8
@@ -37,21 +37,18 @@ class AnigravityEnvironment(Environment):
     def step(self, action: AnigravityAction) -> State:
         self.step_count += 1
         
-        # 1. Fuel Burn Mechanics
         thrust = max(0.0, min(1.0, action.thrust_level))
         if self.fuel <= 0:
-            thrust = 0.0  # Out of fuel, engines cut out
+            thrust = 0.0
         else:
-            self.fuel -= (thrust * 3.0)  # Burn fuel based on thrust output
+            self.fuel -= (thrust * 3.0)
 
-        # 2. Physics with random wind noise
         wind_noise = random.uniform(-0.5, 0.5)
         acceleration = (thrust * self.max_thrust) - self.gravity + wind_noise
         
         self.velocity += acceleration * self.dt
         self.altitude += self.velocity * self.dt
 
-        # 3. Collision Logic
         if self.altitude <= 0:
             self.altitude = 0.0
             if self.velocity < -5.0:
@@ -73,41 +70,66 @@ class AnigravityEnvironment(Environment):
         )
         return State(observation=obs.model_dump(), reward=reward, done=done, info={})
 
-# --- THE REAL GRADERS (These determine the final score) ---
+# --- THE CRASH-PROOF GRADERS ---
+# Using *args and try/except guarantees it never throws an error 
+# and ALWAYS returns strictly between 0.01 and 0.99.
 
-def grade_easy_hover(trajectory) -> float:
-    # Reward for spending time close to target altitude
-    if not trajectory: return 0.0
-    score = 0.0
-    for state in trajectory:
-        obs = state.observation if hasattr(state, 'observation') else state['observation']
-        if abs(obs['target_altitude'] - obs['altitude']) <= 2.0:
-            score += 1.0
-    return min(1.0, score / len(trajectory))
+def grade_easy_hover(*args, **kwargs) -> float:
+    try:
+        trajectory = args[0] if args else kwargs.get('trajectory', [])
+        if not trajectory: return 0.01
+        score = 0.0
+        for state in trajectory:
+            # Safely extract observation whether it's an object or dictionary
+            obs = state.get('observation', {}) if isinstance(state, dict) else getattr(state, 'observation', {})
+            if isinstance(obs, dict):
+                alt = obs.get('altitude', 0.0)
+                targ = obs.get('target_altitude', 10.0)
+                if abs(targ - alt) <= 2.0:
+                    score += 1.0
+        
+        raw_score = score / len(trajectory) if len(trajectory) > 0 else 0.0
+        return float(max(0.01, min(0.99, raw_score)))
+    except Exception as e:
+        print(f"Grader fail-safe triggered: {e}")
+        return 0.02
 
-def grade_medium_landing(trajectory) -> float:
-    # Must reach altitude 0 safely without crashing at high speed
-    if not trajectory: return 0.0
-    crashed = False
-    landed = False
-    for state in trajectory:
-        obs = state.observation if hasattr(state, 'observation') else state['observation']
-        if obs['altitude'] <= 0.5:
-            landed = True
-            if obs['velocity'] < -5.0:
-                crashed = True # Hit the ground too hard!
-    
-    if crashed: return 0.0
-    if landed: return 1.0
-    return 0.0
+def grade_medium_landing(*args, **kwargs) -> float:
+    try:
+        trajectory = args[0] if args else kwargs.get('trajectory', [])
+        if not trajectory: return 0.01
+        crashed = False
+        landed = False
+        for state in trajectory:
+            obs = state.get('observation', {}) if isinstance(state, dict) else getattr(state, 'observation', {})
+            if isinstance(obs, dict):
+                alt = obs.get('altitude', 50.0)
+                vel = obs.get('velocity', 0.0)
+                if alt <= 0.5:
+                    landed = True
+                    if vel < -5.0:
+                        crashed = True
+        
+        if crashed: return 0.15
+        if landed: return 0.95
+        return 0.05
+    except Exception:
+        return 0.02
 
-def grade_hard_takeoff(trajectory) -> float:
-    # Reach target altitude and keep fuel efficient
-    if not trajectory: return 0.0
-    final_obs = trajectory[-1].observation if hasattr(trajectory[-1], 'observation') else trajectory[-1]['observation']
-    dist = abs(final_obs['target_altitude'] - final_obs['altitude'])
-    
-    if dist <= 3.0:
-        fuel_bonus = final_obs['fuel_remaining'] / 100.0
-        return min(1.0, 0.7 + (0.3 * fuel_bonus))
-    return 0.0
+def grade_hard_takeoff(*args, **kwargs) -> float:
+    try:
+        trajectory = args[0] if args else kwargs.get('trajectory', [])
+        if not trajectory: return 0.01
+        last_state = trajectory[-1]
+        obs = last_state.get('observation', {}) if isinstance(last_state, dict) else getattr(last_state, 'observation', {})
+        
+        if isinstance(obs, dict):
+            dist = abs(obs.get('target_altitude', 20.0) - obs.get('altitude', 0.0))
+            fuel = obs.get('fuel_remaining', 0.0)
+            
+            if dist <= 3.0:
+                raw_score = 0.7 + (0.29 * (fuel / 100.0))
+                return float(max(0.01, min(0.99, raw_score)))
+        return 0.05
+    except Exception:
+        return 0.02
