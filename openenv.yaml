@@ -1,10 +1,19 @@
 version: "1.0"
-metadata:
-  name: "anigravity-drone-stabilizer"
-  description: "A real-world industrial environment for training AI to control drone thrusters, counteracting gravity to maintain stable altitude."
-  authors:
-    - "Your Name"
-entrypoint: "anigravity_env:AnigravityEnv"
-tags:
-  - "physics"
-  - "control-systems"
+name: "anigravity-env"
+description: "High-fidelity anti-gravity drone simulator with dynamic physics."
+tasks:
+  - id: "easy_hover"
+    name: "Easy Hover"
+    description: "Hover the drone at 10 units."
+    difficulty: "easy"
+    grader: "anigravity_env_environment:grade_easy_hover"
+  - id: "medium_landing"
+    name: "Medium Landing"
+    description: "Land the drone softly from 50 units."
+    difficulty: "medium"
+    grader: "anigravity_env_environment:grade_medium_landing"
+  - id: "hard_takeoff"
+    name: "Hard Takeoff"
+    description: "Takeoff under heavy gravity while managing fuel."
+    difficulty: "hard"
+    grader: "anigravity_env_environment:grade_hard_takeoff"
