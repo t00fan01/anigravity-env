@@ -14,13 +14,15 @@ API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "dummy_key")
 API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
 TASK_NAME = os.getenv("MY_ENV_V4_TASK", "easy_hover")
-MAX_STEPS = 20
+MAX_STEPS = 30 # Updated to match the environment's new max_steps
 
+# --- UPDATED SYSTEM PROMPT: Now includes fuel instructions ---
 SYSTEM_PROMPT = """
 You are an AI controlling an anti-gravity drone. 
 Output ONLY a single number between 0.0 and 1.0 representing thrust power.
-If Current < Target, output a number > 0.5 to go up.
-If Current > Target, output a number < 0.5 to go down.
+If Current < Target, output > 0.5 to go up.
+If Current > Target, output < 0.5 to go down.
+Conserve fuel. If Fuel is low, use less thrust.
 """
 
 def log_start(task, env, model):
@@ -54,8 +56,13 @@ async def main():
             altitude = obs_dict["altitude"]
             target = obs_dict["target_altitude"]
             velocity = obs_dict["velocity"]
+            
+            # --- NEW: Extract fuel from the updated observation dictionary ---
+            # Using .get() just in case, default to 100.0
+            fuel = obs_dict.get("fuel_remaining", 100.0)
 
-            user_prompt = f"Target: {target} | Current: {altitude:.1f} | Velocity: {velocity:.1f}. Output thrust (0.0-1.0):"
+            # --- NEW: Include fuel in the prompt to the AI ---
+            user_prompt = f"Target: {target} | Current: {altitude:.1f} | Vel: {velocity:.1f} | Fuel: {fuel:.1f}. Output thrust (0.0-1.0):"
             
             thrust = 0.5 
             try:
