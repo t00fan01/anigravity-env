@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic .import BaseModel
 
 class AnigravityAction(BaseModel):
     thrust_level: float
