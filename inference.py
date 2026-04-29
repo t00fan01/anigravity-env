@@ -122,3 +122,5 @@ def grade_medium_landing(*args, **kwargs) -> float:
 
 def grade_hard_takeoff(*args, **kwargs) -> float:
     return 0.53
+
+//inference.py completed
